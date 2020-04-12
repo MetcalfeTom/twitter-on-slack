@@ -25,8 +25,7 @@ def pull_and_post(
         consumer_key,
         consumer_secret,
         access_token,
-        access_token_secret,
-        application_only_auth=True,
+        access_token_secret
     )
 
     slack_client = WebClient(slack_token)
@@ -39,7 +38,7 @@ def pull_and_post(
         for status in statuses:
             user = status.user
             slack_client.chat_postMessage(
-                text=f"http://twitter.com/{user.name}/status/{status.id}",
+                text=f"http://twitter.com/{user.screen_name}/status/{status.id}",
                 channel=slack_channel,
                 icon_url=user.profile_image_url,
                 username=user.name,
