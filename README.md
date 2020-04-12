@@ -36,3 +36,9 @@ in the repository directory (see `.env.example` to see how this should be set up
 And deploy with
 
 `docker-compose up -d`
+
+## Contributing
+Found a bug?  Think this repo could do with more functionality?
+
+Please submit your feedback via the issue board and it will be seen to.  Alternatively if you feel 
+like contributing, your pull requests are most welcome!
