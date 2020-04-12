@@ -59,7 +59,7 @@ def post_to_slack(
     previous_posts = set()
 
     if channel_id is not None:
-        history = slack_client.channels_history(channel=channel_id, count=20)
+        history = slack_client.channels_history(channel=channel_id, count=100)
         for message in history.get("messages"):
             previous_post = message.get("text")
             previous_posts.add(previous_post.strip("<>"))
@@ -115,13 +115,14 @@ def _retrieve_keys() -> List[str]:
 def main(wait_time: int = 60):
     """Continuously pull twitter posts and publish them to a slack channel."""
     keys = _retrieve_keys()
-    pull_and_post(*keys, wait_time=wait_time)
 
-
-if __name__ == "__main__":
     logging.basicConfig(
         level=logging.INFO,
         format="%(levelname)s %(asctime)s %(message)s",
         datefmt="%m-%d %H:%M:%S",
     )
+    pull_and_post(*keys, wait_time=wait_time)
+
+
+if __name__ == "__main__":
     main()
