@@ -9,7 +9,8 @@ from slack import WebClient
 logger = logging.getLogger(__name__)
 
 
-def get_channel_id(slack_client: WebClient, slack_channel: str):
+def get_channel_id(slack_client: WebClient, slack_channel: str) -> str:
+    """Retrieves the corresponding channel ID to slack_channel."""
     response = slack_client.conversations_list(limit=1000)
     for channel in response["channels"]:
         if channel.get("name") == slack_channel:
@@ -25,6 +26,7 @@ def pull_and_post(
     slack_channel: str,
     wait_time: int,
 ):
+    """Continuously pull recent Twitter posts and publish them to Slack."""
 
     twitter_api = Api(consumer_key, consumer_secret, access_token, access_token_secret)
 
@@ -53,6 +55,7 @@ def post_to_slack(
     slack_client: WebClient,
     statuses: List[Status],
 ) -> int:
+    """Post statuses to slack if they aren't already in the channel."""
     previous_posts = set()
 
     if channel_id is not None:
@@ -60,6 +63,7 @@ def post_to_slack(
         for message in history.get("messages"):
             previous_post = message.get("text")
             previous_posts.add(previous_post.strip("<>"))
+
     for status in reversed(statuses):
         user = status.user
         slack_post_text = f"http://twitter.com/{user.screen_name}/status/{status.id}"
@@ -87,6 +91,7 @@ def post_to_slack(
 
 
 def _retrieve_keys() -> List[str]:
+    """Retrieve the necessary keys to communicate with Twitter and Slack APIs."""
     env_vars = (
         "TWITTER_CONSUMER_KEY",
         "TWITTER_CONSUMER_SECRET",
@@ -108,6 +113,7 @@ def _retrieve_keys() -> List[str]:
 
 
 def main(wait_time: int = 60):
+    """Continuously pull twitter posts and publish them to a slack channel."""
     keys = _retrieve_keys()
     pull_and_post(*keys, wait_time=wait_time)
 
