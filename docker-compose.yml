@@ -1,0 +1,8 @@
+version: '3'
+
+services:
+  twitter-on-slack:
+    restart: always
+    image: twitter-on-slack
+    env_file:
+      - .env
