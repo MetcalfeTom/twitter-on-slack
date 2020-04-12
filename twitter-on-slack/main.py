@@ -1,11 +1,22 @@
-from twitter import Api, Status
+from twitter import Api
 from slack import WebClient
 import os
-from typing import List, Dict, Any
+from typing import List
+import time
+import logging
+from tqdm import trange
+
+logger = logging.getLogger(__name__)
 
 
 def pull_and_post(
-    consumer_key: str, consumer_secret: str, access_token: str, access_token_secret: str, slack_token: str, slack_channel: str, wait_time: int = 60,
+    consumer_key: str,
+    consumer_secret: str,
+    access_token: str,
+    access_token_secret: str,
+    slack_token: str,
+    slack_channel: str,
+    wait_time: int = 60,
 ):
 
     twitter_api = Api(
@@ -21,11 +32,21 @@ def pull_and_post(
 
     while True:
         statuses = twitter_api.GetHomeTimeline(since_id=since_id)
+        logger.info(f"Got {len(statuses)} posts from Twitter.")
 
         for status in statuses:
-            slack_client.chat_postMessage(text=status.text, channel=slack_channel)
-
+            user = status.user
+            slack_client.chat_postMessage(
+                text=f"http://twitter.com/{user.name}/status/{status.id}",
+                channel=slack_channel,
+                icon_url=user.profile_image_url,
+                username=user.name,
+            )
             since_id = status.id
+            logger.info(f"Posted status from {user.name} to {slack_channel}.")
+
+        for _ in trange(wait_time, desc="Time to sleep 😴"):
+            time.sleep(1)
 
 
 def _retrieve_keys() -> List[str]:
@@ -34,7 +55,7 @@ def _retrieve_keys() -> List[str]:
         "TWITTER_CONSUMER_SECRET",
         "TWITTER_ACCESS_TOKEN",
         "TWITTER_ACCESS_TOKEN_SECRET",
-        "SLACK_API_TOKEN"
+        "SLACK_API_TOKEN",
     )
 
     keys = []
