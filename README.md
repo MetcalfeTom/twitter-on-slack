@@ -1,5 +1,8 @@
 # Twitter...on Slack!
-This repo provides a service which will take Twitter posts from your feed and publish them to a slack channel.
+This repo provides a service which will take Twitter statuses, replies and retweets from your news feed and 
+publish them to a slack channel, resulting in a stream of posts that look like this:
+
+![](preview.png)
 
 I can't take much credit for the functionality of this repo, it is built on top of Slack's amazing [python client](https://github.com/slackapi/python-slackclient) 
 as well as [bear/python-twitter](https://github.com/bear/python-twitter).
@@ -22,9 +25,9 @@ For more info on obtaining the Slack/Twitter tokens, see the
 [python-twitter](https://python-twitter.readthedocs.io/en/latest/getting_started.html) and 
 [Slack API](https://api.slack.com/authentication/basics) docs.
 
-After this, install the necessary requirements via `pip install -r requirements.txt`. 
+After this, install the necessary requirements via `pip install -r requirements.txt`
 
-Following successful installation, `pyhton main.py` will start the process of pulling Twitter 
+Following successful installation, `python main.py` will start the process of pulling Twitter 
 posts every minute, publishing new ones to `TWITTER_ON_SLACK_CHANNEL`
 
 ## Deployment
