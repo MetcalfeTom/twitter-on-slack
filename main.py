@@ -3,6 +3,7 @@ from typing import List
 import time
 import logging
 from tqdm import trange
+from datetime import datetime, timedelta
 
 from twitter import Api
 from slack import WebClient
@@ -29,16 +30,20 @@ def pull_and_post(
         statuses = twitter_api.GetHomeTimeline(since_id=since_id)
         logger.info(f"Got {len(statuses)} posts from Twitter.")
 
-        for status in statuses:
-            user = status.user
-            slack_client.chat_postMessage(
-                text=f"http://twitter.com/{user.screen_name}/status/{status.id}",
-                channel=slack_channel,
-                icon_url=user.profile_image_url,
-                username=user.name,
-            )
-            since_id = status.id
-            logger.info(f"Posted status from {user.name} to {slack_channel}.")
+        if statuses:
+            for status in reversed(statuses):
+                user = status.user
+                slack_client.chat_postMessage(
+                    text=f"http://twitter.com/{user.screen_name}/status/{status.id}",
+                    channel=slack_channel,
+                    icon_url=user.profile_image_url,
+                    username=user.name,
+                )
+                since_id = status.id
+                logger.info(f"Posted status from {user.name} to {slack_channel}.")
+        else:
+            one_min_ago = (datetime.now() - timedelta(minutes=1)).ctime()
+            logger.info(f"No new twitter posts since {one_min_ago}")
 
         for _ in trange(wait_time, desc="Time to sleep 😴"):
             time.sleep(1)
