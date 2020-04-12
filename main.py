@@ -1,9 +1,9 @@
 import os
-from typing import List
+from typing import List, Optional
 import time
 import logging
 
-from twitter import Api
+from twitter import Api, Status
 from slack import WebClient
 
 logger = logging.getLogger(__name__)
@@ -33,42 +33,57 @@ def pull_and_post(
 
     since_id = None
     while True:
-        previous_posts = set()
         statuses = twitter_api.GetHomeTimeline(since_id=since_id)
 
         if statuses:
-            if channel_id is not None:
-                history = slack_client.channels_history(channel=channel_id, count=20)
-                for message in history.get("messages"):
-                    previous_post = message.get("text")
-                    previous_posts.add(previous_post.strip("<>"))
-
             logger.info(f"Got {len(statuses)} posts from Twitter.")
-            for status in reversed(statuses):
-                user = status.user
-                slack_post_text = (
-                    f"http://twitter.com/{user.screen_name}/status/{status.id}"
-                )
-
-                if slack_post_text not in previous_posts:
-                    slack_client.chat_postMessage(
-                        text=slack_post_text,
-                        channel=slack_channel,
-                        icon_url=user.profile_image_url,
-                        username=user.name,
-                    )
-                    since_id = status.id
-                    logger.info(f"Posted status from {user.name} to {slack_channel}.")
-                    time.sleep(5)  # give slack time to format the posts
-
-                else:
-                    logger.info(
-                        f"Status from {user.name} already in {slack_channel}, skipping."
-                    )
-
+            since_id = post_to_slack(
+                channel_id, since_id, slack_channel, slack_client, statuses
+            )
         else:
             logger.info(f"No new twitter posts.")
+
         time.sleep(wait_time)
+
+
+def post_to_slack(
+    channel_id: str,
+    since_id: Optional[int],
+    slack_channel: str,
+    slack_client: WebClient,
+    statuses: List[Status],
+) -> int:
+    previous_posts = set()
+
+    if channel_id is not None:
+        history = slack_client.channels_history(channel=channel_id, count=20)
+        for message in history.get("messages"):
+            previous_post = message.get("text")
+            previous_posts.add(previous_post.strip("<>"))
+    for status in reversed(statuses):
+        user = status.user
+        slack_post_text = f"http://twitter.com/{user.screen_name}/status/{status.id}"
+
+        if slack_post_text not in previous_posts:
+            slack_client.chat_postMessage(
+                text=slack_post_text,
+                channel=slack_channel,
+                icon_url=user.profile_image_url,
+                username=user.name,
+            )
+            logger.info(
+                f"Posted status from {user.name} to slack via '{slack_channel}'."
+            )
+            time.sleep(5)  # give slack time to format the posts
+
+        else:
+            logger.info(
+                f"Status from {user.name} already in '{slack_channel}', skipping slack post."
+            )
+
+        since_id = status.id
+
+    return since_id
 
 
 def _retrieve_keys() -> List[str]:
