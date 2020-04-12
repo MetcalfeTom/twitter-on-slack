@@ -22,9 +22,9 @@ For more info on obtaining the Slack/Twitter tokens, see the
 [python-twitter](https://python-twitter.readthedocs.io/en/latest/getting_started.html) and 
 [Slack API](https://api.slack.com/authentication/basics) docs.
 
-After this, install the necessary requirements via `pip install -r requirements.txt`. 
+After this, install the necessary requirements via `pip install -r requirements.txt`
 
-Following successful installation, `pyhton main.py` will start the process of pulling Twitter 
+Following successful installation, `python main.py` will start the process of pulling Twitter 
 posts every minute, publishing new ones to `TWITTER_ON_SLACK_CHANNEL`
 
 ## Deployment
