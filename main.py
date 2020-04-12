@@ -3,7 +3,6 @@ from typing import List
 import time
 import logging
 from tqdm import trange
-import sys
 
 from twitter import Api
 from slack import WebClient
@@ -21,12 +20,7 @@ def pull_and_post(
     wait_time: int,
 ):
 
-    twitter_api = Api(
-        consumer_key,
-        consumer_secret,
-        access_token,
-        access_token_secret
-    )
+    twitter_api = Api(consumer_key, consumer_secret, access_token, access_token_secret)
 
     slack_client = WebClient(slack_token)
     since_id = None
@@ -57,6 +51,7 @@ def _retrieve_keys() -> List[str]:
         "TWITTER_ACCESS_TOKEN",
         "TWITTER_ACCESS_TOKEN_SECRET",
         "SLACK_API_TOKEN",
+        "TWITTER_ON_SLACK_CHANNEL",
     )
 
     keys = []
@@ -70,11 +65,11 @@ def _retrieve_keys() -> List[str]:
     return keys
 
 
-def main(slack_channel: str, wait_time: int = 60):
+def main(wait_time: int = 60):
     keys = _retrieve_keys()
-    pull_and_post(*keys, slack_channel=slack_channel, wait_time=wait_time)
+    pull_and_post(*keys, wait_time=wait_time)
 
 
 if __name__ == "__main__":
     logging.basicConfig(level=logging.DEBUG)
-    main(sys.argv[1])
+    main()
