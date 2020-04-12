@@ -2,12 +2,18 @@ import os
 from typing import List
 import time
 import logging
-from tqdm import trange
 
 from twitter import Api
 from slack import WebClient
 
 logger = logging.getLogger(__name__)
+
+
+def get_channel_id(slack_client: WebClient, slack_channel: str):
+    response = slack_client.conversations_list(limit=1000)
+    for channel in response["channels"]:
+        if channel.get("name") == slack_channel:
+            return channel.get("id")
 
 
 def pull_and_post(
@@ -23,28 +29,46 @@ def pull_and_post(
     twitter_api = Api(consumer_key, consumer_secret, access_token, access_token_secret)
 
     slack_client = WebClient(slack_token)
+    channel_id = get_channel_id(slack_client, slack_channel)
+
     since_id = None
     while True:
+        previous_posts = set()
         statuses = twitter_api.GetHomeTimeline(since_id=since_id)
 
         if statuses:
+            if channel_id is not None:
+                history = slack_client.channels_history(channel=channel_id, count=20)
+                for message in history.get("messages"):
+                    previous_post = message.get("text")
+                    previous_posts.add(previous_post.strip("<>"))
+
             logger.info(f"Got {len(statuses)} posts from Twitter.")
             for status in reversed(statuses):
                 user = status.user
-                slack_client.chat_postMessage(
-                    text=f"http://twitter.com/{user.screen_name}/status/{status.id}",
-                    channel=slack_channel,
-                    icon_url=user.profile_image_url,
-                    username=user.name,
+                slack_post_text = (
+                    f"http://twitter.com/{user.screen_name}/status/{status.id}"
                 )
-                since_id = status.id
-                logger.info(f"Posted status from {user.name} to {slack_channel}.")
-                time.sleep(5)  # give slack time to format the posts
+
+                if slack_post_text not in previous_posts:
+                    slack_client.chat_postMessage(
+                        text=slack_post_text,
+                        channel=slack_channel,
+                        icon_url=user.profile_image_url,
+                        username=user.name,
+                    )
+                    since_id = status.id
+                    logger.info(f"Posted status from {user.name} to {slack_channel}.")
+                    time.sleep(5)  # give slack time to format the posts
+
+                else:
+                    logger.info(
+                        f"Status from {user.name} already in {slack_channel}, skipping."
+                    )
+
         else:
             logger.info(f"No new twitter posts.")
-
-        for _ in trange(wait_time, desc="Time to sleep 😴"):
-            time.sleep(1)
+        time.sleep(wait_time)
 
 
 def _retrieve_keys() -> List[str]:
