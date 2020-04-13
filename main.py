@@ -17,7 +17,7 @@ def get_channel_id(slack_client: WebClient, slack_channel: str) -> str:
             return channel.get("id")
 
 
-def pull_and_post(
+def pull_and_publish(
     consumer_key: str,
     consumer_secret: str,
     access_token: str,
@@ -26,7 +26,7 @@ def pull_and_post(
     slack_channel: str,
     wait_time: int,
 ):
-    """Continuously pull recent Twitter posts and publish them to Slack."""
+    """Continuously pull recent Twitter statuses and publish them to Slack."""
 
     twitter_api = Api(consumer_key, consumer_secret, access_token, access_token_secret)
 
@@ -49,7 +49,7 @@ def pull_and_post(
 
 
 def post_to_slack(
-    channel_id: str,
+    channel_id: Optional[str],
     since_id: Optional[int],
     slack_channel: str,
     slack_client: WebClient,
@@ -112,7 +112,7 @@ def _retrieve_keys() -> List[str]:
     return keys
 
 
-def main(wait_time: int = 60):
+def main(wait_time: int = 120):
     """Continuously pull twitter posts and publish them to a slack channel."""
     keys = _retrieve_keys()
 
@@ -121,7 +121,7 @@ def main(wait_time: int = 60):
         format="%(levelname)s %(asctime)s %(message)s",
         datefmt="%m-%d %H:%M:%S",
     )
-    pull_and_post(*keys, wait_time=wait_time)
+    pull_and_publish(*keys, wait_time=wait_time)
 
 
 if __name__ == "__main__":
