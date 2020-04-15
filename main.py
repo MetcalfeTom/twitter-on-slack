@@ -1,9 +1,9 @@
 import os
-from typing import List, Optional, Dict, Any
+from typing import List, Optional
 import time
 import logging
 
-from twitter import Api, Status
+from twitter import Api, Status, User
 from slack import WebClient
 
 logger = logging.getLogger(__name__)
@@ -30,12 +30,12 @@ def pull_and_publish(
         statuses = twitter_api.GetHomeTimeline(since_id=since_id)
 
         if statuses:
-            logger.info(f"Got {len(statuses)} posts from Twitter.")
-            since_id = post_to_slack(
+            logger.info(f"Got {len(statuses)} statuses from Twitter.")
+            since_id = publish_new_statuses(
                 channel_id, since_id, slack_channel, slack_client, statuses
             )
         else:
-            logger.info("No new twitter posts.")
+            logger.info("No new twitter statuses.")
 
         time.sleep(wait_time)
 
@@ -48,39 +48,28 @@ def _get_channel_id(slack_client: WebClient, slack_channel: str) -> str:
             return channel.get("id")
 
 
-def post_to_slack(
+def publish_new_statuses(
     channel_id: Optional[str],
     since_id: Optional[int],
     slack_channel: str,
     slack_client: WebClient,
     statuses: List[Status],
 ) -> int:
-    """Post statuses to slack if they aren't already in the channel."""
-    previous_posts = set()
+    """Publish statuses to slack if they aren't already in the channel."""
+    previous_links = set()
 
     if channel_id is not None:
         history = slack_client.channels_history(channel=channel_id, count=100)
         for message in history.get("messages"):
             previous_post = message.get("text")
-            previous_posts.add(previous_post)
+            link = previous_post.split("|")[0].strip("<>")
+            previous_links.add(link)
 
     for status in reversed(statuses):
         user = status.user
-        slack_post_text = (
-            f"<Link to tweet|http://twitter.com/{user.screen_name}/status/{status.id}>"
-        )
-
-        if slack_post_text not in previous_posts:
-            slack_client.chat_postMessage(
-                blocks=[markdown_block(slack_post_text)],
-                channel=slack_channel,
-                icon_url=user.profile_image_url,
-                username=user.name,
-            )
-            logger.info(
-                f"Posted status from {user.name} to slack on `#{slack_channel}`."
-            )
-            time.sleep(5)  # give slack time to format the posts
+        twitter_link = f"http://twitter.com/{user.screen_name}/status/{status.id}"
+        if twitter_link not in previous_links:
+            _publish(slack_channel, slack_client, twitter_link, user)
 
         else:
             logger.info(
@@ -92,12 +81,25 @@ def post_to_slack(
     return since_id
 
 
-def markdown_block(text: str) -> Dict[str, Any]:
-    """Creates a simple message block using Slack's block format."""
-    return {
-        "type": "section",
-        "text": {"type": "mrkdwn", "text": text},
-    }
+def _publish(
+    slack_channel: str,
+    slack_client: WebClient,
+    twitter_link: str,
+    user: User,
+    message: str = "View on Twitter",
+):
+    """Format the slack post text and publish to slack_channel."""
+    slack_post_text = f"<{twitter_link}|{message}>"
+
+    slack_client.chat_postMessage(
+        text=slack_post_text,
+        channel=slack_channel,
+        icon_url=user.profile_image_url,
+        username=user.name,
+    )
+
+    logger.info(f"Posted status from {user.name} to slack on '{slack_channel}'.")
+    time.sleep(5)  # give slack time to format the posts
 
 
 def _retrieve_keys() -> List[str]:
@@ -116,14 +118,14 @@ def _retrieve_keys() -> List[str]:
     for env_var in env_vars:
         value = os.environ.get(env_var)
         if value is None:
-            raise IOError(f"Missing required env var: {env_var}")
+            raise KeyError(f"Missing required env var: {env_var}")
 
         keys.append(value)
     return keys
 
 
 def main(wait_time: int = 120):
-    """Continuously pull twitter posts and publish them to a slack channel."""
+    """Continuously pull twitter statuses and publish them to a slack channel."""
     keys = _retrieve_keys()
 
     logging.basicConfig(
