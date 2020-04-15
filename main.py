@@ -1,5 +1,5 @@
 import os
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 import time
 import logging
 
@@ -72,13 +72,13 @@ def post_to_slack(
 
         if slack_post_text not in previous_posts:
             slack_client.chat_postMessage(
-                text=slack_post_text,
+                blocks=[markdown_block(slack_post_text)],
                 channel=slack_channel,
                 icon_url=user.profile_image_url,
                 username=user.name,
             )
             logger.info(
-                f"Posted status from {user.name} to slack via #{slack_channel}."
+                f"Posted status from {user.name} to slack on `#{slack_channel}`."
             )
             time.sleep(5)  # give slack time to format the posts
 
@@ -90,6 +90,14 @@ def post_to_slack(
         since_id = status.id
 
     return since_id
+
+
+def markdown_block(text: str) -> Dict[str, Any]:
+    """Creates a simple message block using Slack's block format."""
+    return {
+        "type": "section",
+        "text": {"type": "mrkdwn", "text": text},
+    }
 
 
 def _retrieve_keys() -> List[str]:
