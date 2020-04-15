@@ -9,14 +9,6 @@ from slack import WebClient
 logger = logging.getLogger(__name__)
 
 
-def get_channel_id(slack_client: WebClient, slack_channel: str) -> str:
-    """Retrieves the corresponding channel ID to slack_channel."""
-    response = slack_client.conversations_list(limit=1000)
-    for channel in response["channels"]:
-        if channel.get("name") == slack_channel:
-            return channel.get("id")
-
-
 def pull_and_publish(
     consumer_key: str,
     consumer_secret: str,
@@ -31,7 +23,7 @@ def pull_and_publish(
     twitter_api = Api(consumer_key, consumer_secret, access_token, access_token_secret)
 
     slack_client = WebClient(slack_token)
-    channel_id = get_channel_id(slack_client, slack_channel)
+    channel_id = _get_channel_id(slack_client, slack_channel)
 
     since_id = None
     while True:
@@ -43,9 +35,17 @@ def pull_and_publish(
                 channel_id, since_id, slack_channel, slack_client, statuses
             )
         else:
-            logger.info(f"No new twitter posts.")
+            logger.info("No new twitter posts.")
 
         time.sleep(wait_time)
+
+
+def _get_channel_id(slack_client: WebClient, slack_channel: str) -> str:
+    """Retrieves the corresponding channel ID to slack_channel."""
+    response = slack_client.conversations_list(limit=1000)
+    for channel in response["channels"]:
+        if channel.get("name") == slack_channel:
+            return channel.get("id")
 
 
 def post_to_slack(
@@ -62,11 +62,13 @@ def post_to_slack(
         history = slack_client.channels_history(channel=channel_id, count=100)
         for message in history.get("messages"):
             previous_post = message.get("text")
-            previous_posts.add(previous_post.strip("<>"))
+            previous_posts.add(previous_post)
 
     for status in reversed(statuses):
         user = status.user
-        slack_post_text = f"http://twitter.com/{user.screen_name}/status/{status.id}"
+        slack_post_text = (
+            f"<Link to tweet|http://twitter.com/{user.screen_name}/status/{status.id}>"
+        )
 
         if slack_post_text not in previous_posts:
             slack_client.chat_postMessage(
@@ -76,7 +78,7 @@ def post_to_slack(
                 username=user.name,
             )
             logger.info(
-                f"Posted status from {user.name} to slack via '{slack_channel}'."
+                f"Posted status from {user.name} to slack via #{slack_channel}."
             )
             time.sleep(5)  # give slack time to format the posts
 
