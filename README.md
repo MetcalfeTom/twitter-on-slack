@@ -36,11 +36,7 @@ posts every two minutes, publishing new ones to `TWITTER_ON_SLACK_CHANNEL`
 
 ## Deployment
 It is recommended to use this repository as a service.  To do so, fill the above env variables in a file named `.env` 
-in the repository directory (see `.env.example` to see how this should be set up).  Then build the image with
-
-`docker build -t twitter-on-slack .`
-
-And deploy with
+in the repository directory (see `.env.example` to see how this should be set up).  Then build and deploy the service with
 
 `docker-compose up -d`
 
