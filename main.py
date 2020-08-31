@@ -59,7 +59,7 @@ def publish_new_statuses(
     previous_links = set()
 
     if channel_id is not None:
-        history = slack_client.channels_history(channel=channel_id, count=100)
+        history = slack_client.conversations_history(channel=channel_id, count=100)
         for message in history.get("messages"):
             previous_post = message.get("text")
             link = previous_post.split("|")[0].strip("<>")

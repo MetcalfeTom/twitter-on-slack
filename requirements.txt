@@ -1,2 +1,2 @@
 python-twitter==3.5
-slackclient==2.5.0
+slackclient==2.8.1
