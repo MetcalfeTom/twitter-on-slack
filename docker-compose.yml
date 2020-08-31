@@ -1,7 +1,7 @@
 version: '3'
 
 services:
-  twitter-on-slack:
+  app:
     restart: always
     build: .
     env_file:
